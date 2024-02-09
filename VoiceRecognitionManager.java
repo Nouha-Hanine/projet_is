@@ -1,21 +1,23 @@
-package com.example.saqsi;
+package edu.cmu.pocketsphinx.demo;
 
 import android.content.Context;
 import android.os.AsyncTask;
 
-import edu.cmu.pocketsphinx.Assets;
+import java.io.File;
+import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import edu.cmu.pocketsphinx.Hypothesis;
 import edu.cmu.pocketsphinx.SpeechRecognizer;
 import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
-
-import java.io.File;
-import java.io.IOException;
 
 public class VoiceRecognitionManager {
 
     private Context context;
     private SpeechRecognizer recognizer;
-    private RecognitionListener recognitionListener;
+    private static RecognitionListener recognitionListener;
 
 
 
@@ -31,7 +33,7 @@ public class VoiceRecognitionManager {
     private void initRecognizer() {
         try {
 
-            File acousticModelDir = new File(getFilesDir(), "acoustic_model");
+            File acousticModelDir = new File(context.getFilesDir(), "acoustic_model");
             if (!acousticModelDir.exists()) {
 
                 extractAssets(acousticModelDir);
@@ -58,8 +60,12 @@ public class VoiceRecognitionManager {
 
     private void extractAssets(File targetDir) {
         try {
-
-            copyFileOrDir("acoustic_model", targetDir);
+            String[] assets = context.getAssets().list("");
+            if (assets != null) {
+                for (String asset : assets) {
+                    copyFileOrDir(asset, targetDir);
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -72,7 +78,7 @@ public class VoiceRecognitionManager {
             String targetPath = targetDir.getAbsolutePath() + File.separator + asset;
             if (context.getAssets().list(sourcePath).length == 0) {
                 // Fichier
-                FileUtils.copyInputStreamToFile(context.getAssets().open(sourcePath), new File(targetPath));
+                copyAssetFile(context, sourcePath, targetPath);
             } else {
                 // Répertoire
                 File newDir = new File(targetPath);
@@ -82,7 +88,20 @@ public class VoiceRecognitionManager {
         }
     }
 
+    private void copyAssetFile(Context context, String assetFilePath, String destinationFilePath) throws IOException {
+        InputStream inputStream = context.getAssets().open(assetFilePath);
+        OutputStream outputStream = new FileOutputStream(destinationFilePath);
 
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0) {
+            outputStream.write(buffer, 0, length);
+        }
+
+        outputStream.flush();
+        outputStream.close();
+        inputStream.close();
+    }
 
     public void startListening() {
         if (recognizer != null) {
@@ -105,9 +124,24 @@ public class VoiceRecognitionManager {
         }
     }
 
-    public class RecognitionListener implements edu.cmu.pocketsphinx.RecognitionListener {
+    public static class RecognitionListener implements edu.cmu.pocketsphinx.RecognitionListener {
 
-        public void onResult(String hypothesis) {
+        @Override
+        public void onBeginningOfSpeech() {
+            
+        }
+
+        @Override
+        public void onEndOfSpeech() {
+
+        }
+
+        @Override
+        public void onPartialResult(Hypothesis hypothesis) {
+
+        }
+
+        public void onResult(Hypothesis hypothesis) {
             if (hypothesis != null) {
                 String spokenText = hypothesis.getHypstr();
 
@@ -117,11 +151,25 @@ public class VoiceRecognitionManager {
             }
         }
 
+       private void onResult(String spokenText) {
+           System.out.println("Résultat de la reconnaissance vocale : " + spokenText);
+        }
+
+        @Override
+        public void onError(Exception e) {
+
+        }
+
+        @Override
+        public void onTimeout() {
+
+        }
+
     }
 
-    private void processVoiceCommand(String command) {
 
-    }
 }
+
+
 
 
